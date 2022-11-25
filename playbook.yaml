@@ -1,0 +1,102 @@
+---
+- hosts: all
+  become: true
+
+  tasks:
+
+  # Simple docker, docker compose and prometheus node exporter install from repos. 
+  # Docker and node exporter starts automatically by default.
+
+  - name: Add Docker GPG apt Key
+    apt_key:
+      url: https://download.docker.com/linux/ubuntu/gpg
+      state: present
+  
+  - name: Add Docker repository
+    apt_repository:
+      repo: deb https://download.docker.com/linux/ubuntu focal stable
+      state: present
+  
+  - name: Install docker-ce
+    apt:
+      name: docker-ce
+      state: latest
+      update_cache: true
+  
+  - name: Install docker-compose
+    apt:
+      name: docker-compose
+      state: latest
+      update_cache: true
+
+  - name: Install node-exporter
+    apt: 
+      name: prometheus-node-exporter
+      state: latest
+      update_cache: true  
+
+# Folder synchronization - simpliest way to provide Prometheus and Grafana with required configuration.
+
+  - name: Sync folder with config files for Prometheus and Grafana
+    synchronize:
+      src: ./configs
+      dest: /tmp
+ 
+  - name: Install and run Prometheus in container 
+    docker_compose:
+      project_name: prometheus
+      definition:
+        version: "3.2"
+        volumes:
+          prometheus_data: {}
+        services:
+          prometheus:
+            image: prom/prometheus:latest
+            container_name: prometheus
+            restart: unless-stopped
+            volumes:
+              - type: bind 
+                source: /tmp/configs/prometheus/prometheus.yml # gather data from docker host via host.docker.internal "dns" name
+                target: /etc/prometheus/prometheus.yml
+              - prometheus_data:/prometheus
+            command:
+              - '--config.file=/etc/prometheus/prometheus.yml'
+              - '--storage.tsdb.path=/prometheus'
+              - '--web.console.libraries=/etc/prometheus/console_libraries'
+              - '--web.console.templates=/etc/prometheus/consoles'
+              - '--web.enable-lifecycle'
+            ports:
+              - 9090:9090
+            extra_hosts:
+              - "host.docker.internal:host-gateway"
+
+    
+  - name: Install and run Grafana in container
+    docker_compose:
+      project_name: grafana
+      definition:
+        version: "3.2"
+        volumes:
+          grafana_data: {}
+        services:    
+          grafana:
+            image: grafana/grafana:latest
+            ports:
+            - 3000:3000
+            restart: unless-stopped
+            volumes:
+              - grafana_data:/var/lib/grafana
+              - type: bind
+                source: /tmp/configs/grafana/provisioning/datasources/datasources.yml #prometheus as datasource via host.docker.internal
+                target: /etc/grafana/provisioning/datasources/datasources.yml
+              - type: bind
+                source: /tmp/configs/grafana/provisioning/dashboards/default.yaml # default settigs for dashboard folder
+                target: /etc/grafana/provisioning/dashboards/default.yaml
+              - type: bind
+                source: /tmp/configs/grafana/json/node-exporter-full_rev29.json # 1806 dashboard json
+                target: /var/lib/grafana/dashboards/node-exporter-full_rev29.json
+            extra_hosts:
+              - "host.docker.internal:host-gateway"    
+
+
+    
