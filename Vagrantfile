@@ -12,7 +12,7 @@ Vagrant.configure("2") do |config|
   config.vm.network "forwarded_port", guest: 3000, host: 3000, host_ip: "127.0.0.1"
   
 # Ansible provisioning via playbook file 
-  config.vm.provision "ansible" do |ansible|
+  config.vm.provision "ansible", run: "always" do |ansible|
     ansible.playbook="playbook.yaml"
   end
 
