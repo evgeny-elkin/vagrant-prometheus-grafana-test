@@ -1,7 +1,7 @@
 # Simple Vagrantfile, bringing up prometheus and grafana in docker containers
 ## Requirements:
 - Hashicorp Vagrant;
-- Ansible;
+- Ansible with <code>community.docker</code> plugins;
 - Virtual Box as default VM provider for Vagrant;
 ## Installation
 1. Create copy of this repo via <code>git clone</code>.
