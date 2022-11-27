@@ -42,6 +42,7 @@
       src: ./configs
       dest: /tmp
  
+# Prometheus container
   - name: Install and run Prometheus in container 
     docker_compose:
       project_name: prometheus
@@ -68,9 +69,9 @@
             ports:
               - 9090:9090
             extra_hosts:
-              - "host.docker.internal:host-gateway"
+              - "host.docker.internal:host-gateway" # Need to communicate with node exporter on Docker host
 
-    
+# Grafana container   
   - name: Install and run Grafana in container
     docker_compose:
       project_name: grafana
@@ -93,10 +94,10 @@
                 source: /tmp/configs/grafana/provisioning/dashboards/default.yaml # default settigs for dashboard folder
                 target: /etc/grafana/provisioning/dashboards/default.yaml
               - type: bind
-                source: /tmp/configs/grafana/json/node-exporter-full_rev29.json # 1806 dashboard json
+                source: /tmp/configs/grafana/json/node-exporter-full_rev29.json # Add 1806 dashboard json to Grafana.
                 target: /var/lib/grafana/dashboards/node-exporter-full_rev29.json
             extra_hosts:
-              - "host.docker.internal:host-gateway"    
+              - "host.docker.internal:host-gateway"  # To communicate with Prometeus container via 9090  
 
 
     
